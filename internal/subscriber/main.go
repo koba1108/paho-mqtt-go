@@ -1,81 +1,62 @@
 package subscriber
 
 import (
-	"crypto/tls"
-	"crypto/x509"
+	"context"
+	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"io/ioutil"
+	"github.com/koba1108/paho-mqtt-go/internal/subscriber/external"
+	"github.com/koba1108/paho-mqtt-go/internal/subscriber/models"
 	"os"
 	"os/signal"
-)
-
-const (
-	TopicTelematics    = "battery/+/shadow/update"
-	TopicChargeStation = "charger/+/shadow/update"
+	"strings"
 )
 
 var (
-	msgCh    = make(chan mqtt.Message)
-	signalCh = make(chan os.Signal, 1)
+	msgCh     = make(chan mqtt.Message)
+	signalCh  = make(chan os.Signal, 1)
+	onMessage = func(_ mqtt.Client, msg mqtt.Message) { msgCh <- msg }
 )
 
-var onMessage = func(_ mqtt.Client, msg mqtt.Message) {
-	msgCh <- msg
-}
-
 func Run() {
-	c := NewMqttClient()
-	c.Subscribe(TopicTelematics, 1, onMessage)
-	c.Subscribe(TopicChargeStation, 1, onMessage)
+	ctx := context.Background()
+	c := external.NewMqttClient()
+	c.Subscribe(models.TopicBattery, 1, onMessage)
+	c.Subscribe(models.TopicCharger, 1, onMessage)
 
 	signal.Notify(signalCh, os.Interrupt)
 
+	// modelに入れる？
+	firebaseApp := external.GetFirebase(ctx)
+	db, err := firebaseApp.Firestore(ctx)
+	if err != nil {
+		panic(err)
+	}
+
 	for {
 		select {
-		case m := <-msgCh:
-			fmt.Printf("topic: %v, payload: %v\n", m.Topic(), string(m.Payload()))
+		case msg := <-msgCh:
+			topicBase := strings.Split(msg.Topic(), "/")[0]
+			switch topicBase {
+			case models.TopicBaseBattery:
+				var battery models.Battery
+				_ = json.Unmarshal(msg.Payload(), &battery)
+				fmt.Printf("battery %v", battery)
+				// todo: インドのタイムゾーン付ける
+				if _, _, err := db.Collection(models.TopicBaseBattery).Add(ctx, battery); err != nil {
+					// todo: add error log
+				}
+			case models.TopicBaseCharger:
+				var charger models.Charger
+				_ = json.Unmarshal(msg.Payload(), &charger)
+				if _, _, err := db.Collection(models.TopicBaseCharger).Add(ctx, charger); err != nil {
+					// todo: add error log
+				}
+			}
 		case <-signalCh:
 			fmt.Printf("Interrupt detected.\n")
 			c.Disconnect(1000)
 			return
 		}
-	}
-}
-
-func NewMqttClient() mqtt.Client {
-	opts := mqtt.NewClientOptions()
-	opts.AddBroker(fmt.Sprintf("%s:%s", os.Getenv("BROKER_URL"), os.Getenv("BROKER_PORT")))
-	opts.SetClientID(os.Getenv("CLIENT_ID"))
-	opts.SetTLSConfig(NewTLSConfig())
-	opts.SetOnConnectHandler(func(_ mqtt.Client) {
-		fmt.Printf("onConnect.\n")
-	})
-
-	c := mqtt.NewClient(opts)
-	if token := c.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
-	}
-	return c
-}
-
-func NewTLSConfig() *tls.Config {
-	certPool := x509.NewCertPool()
-	pemCerts, err := ioutil.ReadFile(os.Getenv("AWS_ROOT_CA_FILE_PATH"))
-	if err == nil {
-		certPool.AppendCertsFromPEM(pemCerts)
-	}
-	cert, err := tls.LoadX509KeyPair(os.Getenv("CERT_FILE_PATH"), os.Getenv("PRIVATE_KEY_PATH"))
-	if err != nil {
-		panic(err)
-	}
-	cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
-	if err != nil {
-		panic(err)
-	}
-	return &tls.Config{
-		RootCAs:            certPool,
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{cert},
 	}
 }
