@@ -1,0 +1,17 @@
+runtime: go113
+env: flex
+
+instance_class: B1
+
+main: github.com/koba1108/paho-mqtt-go/cmd/subscriber
+
+manual_scaling:
+  instances: 1
+
+resources:
+  cpu: 1
+  memory_gb: 0.5
+  disk_size_gb: 10
+
+includes:
+  - env.yaml
