@@ -58,5 +58,6 @@ type Battery struct {
 
 func (t *Battery) Update(ctx context.Context, db *firestore.Client, docId string) (*firestore.WriteResult, error) {
 	// todo: TIMEをインドのタイムゾーン付けてtimestamp型にする
+	// todo: CreateAtを追加してインドのタイムゾーンのtimestamp型にする
 	return db.Collection(CollectionNameBattery).Doc(docId).Set(ctx, t)
 }

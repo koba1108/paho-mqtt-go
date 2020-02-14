@@ -56,5 +56,6 @@ https://github.com/GoogleCloudPlatform/golang-samples/blob/d6245eed68f86e529e674
 */
 func (t *Battery) Insert() error {
 	// todo: insert to data store
+	// todo: CreateAtを追加してインドのタイムゾーンのtimestamp型にする
 	return nil
 }

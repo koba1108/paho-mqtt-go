@@ -82,6 +82,7 @@ func startSubscribe(ctx context.Context, c mqtt.Client) {
 		case msg := <-batteryBqCh:
 			var battery bigquery.Battery
 			if err := json.Unmarshal(msg.Payload(), &battery); err != nil {
+				// todo: カラムにCreateAt追加するので、Putからmodel.Insertに変える
 				if err := batteryInserter.Put(ctx, battery); err != nil {
 					// todo: error log
 				}
@@ -90,6 +91,7 @@ func startSubscribe(ctx context.Context, c mqtt.Client) {
 		case msg := <-chargerBqCh:
 			var charger bigquery.Charger
 			if err := json.Unmarshal(msg.Payload(), &charger); err != nil {
+				// todo: カラムにCreateAt追加するので、Putからmodel.Insertに変える
 				if err := chargerInserter.Put(ctx, charger); err != nil {
 					// todo: error log
 				}

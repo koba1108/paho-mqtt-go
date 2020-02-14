@@ -30,6 +30,6 @@ type Charger struct {
 }
 
 func (t *Charger) Update(ctx context.Context, db *firestore.Client, docId string) (*firestore.WriteResult, error) {
-	// todo: TIMEをインドのタイムゾーン付けてtimestamp型にする
+	// todo: CreateAtを追加してインドのタイムゾーンのtimestamp型にする
 	return db.Collection(CollectionNameCharger).Doc(docId).Set(ctx, t)
 }
