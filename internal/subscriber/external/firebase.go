@@ -1,6 +1,7 @@
 package external
 
 import (
+	"cloud.google.com/go/firestore"
 	"context"
 	firebase "firebase.google.com/go"
 	"fmt"
@@ -24,4 +25,11 @@ func GetFirebase(ctx context.Context) *firebase.App {
 		InitFirebase(ctx)
 	}
 	return firebaseApp
+}
+
+func GetFirestore(ctx context.Context) (*firestore.Client, error) {
+	if firebaseApp == nil {
+		InitFirebase(ctx)
+	}
+	return firebaseApp.Firestore(ctx)
 }

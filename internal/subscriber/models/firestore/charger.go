@@ -1,7 +1,11 @@
-package models
+package firestore
 
-const TopicBaseCharger = "charger"
-const TopicCharger = "charger/+/shadow/update"
+import (
+	"cloud.google.com/go/firestore"
+	"context"
+)
+
+const CollectionNameCharger = "charger"
 
 type Charger struct {
 	CsID   string `json:"cs_id"`
@@ -25,7 +29,7 @@ type Charger struct {
 	BleID  string `json:"ble_id"`
 }
 
-func (t *Charger) Insert() error {
-	// todo: insert to data store
-	return nil
+func (t *Charger) Update(ctx context.Context, db *firestore.Client, docId string) (*firestore.WriteResult, error) {
+	// todo: TIMEをインドのタイムゾーン付けてtimestamp型にする
+	return db.Collection(CollectionNameCharger).Doc(docId).Set(ctx, t)
 }

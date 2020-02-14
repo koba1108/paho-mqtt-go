@@ -1,7 +1,6 @@
-package models
+package bigquery
 
-const TopicBaseBattery = "battery"
-const TopicBattery = "battery/+/shadow/update"
+const TableNameBattery = "battery"
 
 type Battery struct {
 	TIME string  `json:"TIME"`
@@ -52,6 +51,9 @@ type Battery struct {
 	FV   float64 `json:"FV"`
 }
 
+/**
+https://github.com/GoogleCloudPlatform/golang-samples/blob/d6245eed68f86e529e674c2a4d181d155d0bab97/bigquery/snippets/snippet.go#L780
+*/
 func (t *Battery) Insert() error {
 	// todo: insert to data store
 	return nil

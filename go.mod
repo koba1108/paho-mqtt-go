@@ -3,6 +3,7 @@ module github.com/koba1108/paho-mqtt-go
 go 1.13
 
 require (
+	cloud.google.com/go/bigquery v1.3.0
 	cloud.google.com/go/firestore v1.1.1 // indirect
 	cloud.google.com/go/storage v1.5.0 // indirect
 	firebase.google.com/go v3.12.0+incompatible
