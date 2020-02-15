@@ -5,6 +5,7 @@ ENV GO111MODULE=on
 
 ADD . /build
 WORKDIR /build
+
 RUN CGO_ENABLED=0 go build -ldflags '-extldflags "-static" "-w" "-s"' -o main cmd/subscriber/main.go
 
 # バイナリ圧縮
@@ -20,6 +21,7 @@ RUN apk update && apk add --no-cache ca-certificates && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 COPY --from=upx /build/main main
+COPY --from=build-env /build/secrets /app/secrets
 
 EXPOSE 8080
 ENTRYPOINT ./main

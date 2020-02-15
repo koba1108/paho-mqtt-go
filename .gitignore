@@ -18,3 +18,5 @@
 env.yaml
 .idea
 secrets/
+deployment/k8s/dev/
+scripts/

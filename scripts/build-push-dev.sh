@@ -6,5 +6,5 @@ if [ "$1" = "" ]; then
 fi
 
 DockerfilePath="./build/docker/Dockerfile"
-docker build -t gcr.io/ykoba-mumbai/paho-mqtt-go:"$1" -f "$DockerfilePath" . &&
-  docker push gcr.io/ykoba-mumbai/paho-mqtt-go:"$1"
+docker build -t gcr.io/project-nymbus/paho-mqtt-go:"$1" -f "$DockerfilePath" . &&
+  docker push gcr.io/project-nymbus/paho-mqtt-go:"$1"

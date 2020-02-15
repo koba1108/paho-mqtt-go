@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	if os.Getenv("GAE_ENV") == "" {
+	if os.Getenv("APP_ENV") != "production" {
 		if err := godotenv.Load(".env"); err != nil {
 			panic(err)
 		}
