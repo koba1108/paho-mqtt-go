@@ -1,29 +1,27 @@
 package subscriber
 
 import (
-	Bigquery "cloud.google.com/go/bigquery"
-	Firestore "cloud.google.com/go/firestore"
+	"cloud.google.com/go/bigquery"
+	"cloud.google.com/go/firestore"
 	"context"
-	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/koba1108/paho-mqtt-go/internal/subscriber/external"
-	"github.com/koba1108/paho-mqtt-go/internal/subscriber/models/bigquery"
-	"github.com/koba1108/paho-mqtt-go/internal/subscriber/models/firestore"
-	"github.com/koba1108/paho-mqtt-go/internal/subscriber/models/pubsub"
+	"github.com/koba1108/paho-mqtt-go/internal/subscriber/models"
 	"os"
 	"os/signal"
 	"strings"
 )
 
 var (
+	mqttClient mqtt.Client
 	// firestore
-	fsClient *Firestore.Client
+	fsClient *firestore.Client
 	// bigquery
-	bqClient        *Bigquery.Client
-	bqDataset       *Bigquery.Dataset
-	batteryInserter *Bigquery.Inserter
-	chargerInserter *Bigquery.Inserter
+	bqClient   *bigquery.Client
+	bqDataset  *bigquery.Dataset
+	batteryTbl *bigquery.Table
+	chargerTbl *bigquery.Table
 	// チャンネル
 	signalCh    = make(chan os.Signal, 1)
 	batteryFsCh = make(chan mqtt.Message)
@@ -36,10 +34,8 @@ func Run() {
 	ctx := context.Background()
 	initFirestore(ctx)
 	initBigQuery(ctx)
-	client := external.NewMqttClient()
-	client.Subscribe(pubsub.TopicBattery, 1, onMessage)
-	client.Subscribe(pubsub.TopicCharger, 1, onMessage)
-	startSubscribe(ctx, client)
+	initMqtt(ctx)
+	startSubscribe(ctx)
 }
 
 func initFirestore(ctx context.Context) {
@@ -53,53 +49,49 @@ func initFirestore(ctx context.Context) {
 func initBigQuery(ctx context.Context) {
 	bqClient = external.GetBigquery(ctx)
 	bqDataset = bqClient.Dataset(os.Getenv("BQ_DATASET_ID"))
-	batteryInserter = bqDataset.Table(bigquery.TableNameBattery).Inserter()
-	chargerInserter = bqDataset.Table(bigquery.TableNameCharger).Inserter()
+	batteryTbl = bqDataset.Table(models.TableNameBattery)
+	chargerTbl = bqDataset.Table(models.TableNameCharger)
 }
 
-func startSubscribe(ctx context.Context, c mqtt.Client) {
+func initMqtt(ctx context.Context) {
+	client := external.NewMqttClient()
+	client.Subscribe(models.TopicBattery, 1, onMessage)
+	client.Subscribe(models.TopicCharger, 1, onMessage)
+	mqttClient = client
+}
+
+func startSubscribe(ctx context.Context) {
 	signal.Notify(signalCh, os.Interrupt)
 	for {
 		select {
 		// 現在地の表示用
 		case msg := <-batteryFsCh:
-			var battery firestore.Battery
-			if err := json.Unmarshal(msg.Payload(), &battery); err == nil {
-				if _, err := battery.Update(ctx, fsClient, battery.TID); err != nil {
-					// todo: error log
-				}
+			data := models.NewBattery(msg.Payload())
+			docRef := fsClient.Collection(models.CollectionNameBattery).Doc(data.TID)
+			if _, err := docRef.Set(ctx, data); err != nil {
+				_ = fmt.Errorf("Error at <-chargerFsCh docRef.Set: %s. data: %v ", err.Error(), data)
 			}
-			fmt.Printf("battery %v", battery)
 		case msg := <-chargerFsCh:
-			var charger firestore.Charger
-			if err := json.Unmarshal(msg.Payload(), &charger); err != nil {
-				if _, err := charger.Update(ctx, fsClient, charger.CsID); err != nil {
-					// todo: error log
-				}
+			data := models.NewCharger(msg.Payload())
+			docRef := fsClient.Collection(models.CollectionNameCharger).Doc(data.CsID)
+			if _, err := docRef.Set(ctx, data); err != nil {
+				_ = fmt.Errorf("Error at <-chargerFsCh docRef.Set: %s. data: %v ", err.Error(), data)
 			}
-			fmt.Printf("charger %v", charger)
 		// ログ蓄積用
 		case msg := <-batteryBqCh:
-			var battery bigquery.Battery
-			if err := json.Unmarshal(msg.Payload(), &battery); err != nil {
-				// todo: カラムにCreateAt追加するので、Putからmodel.Insertに変える
-				if err := batteryInserter.Put(ctx, battery); err != nil {
-					// todo: error log
-				}
+			data := models.NewBattery(msg.Payload())
+			if err := batteryTbl.Inserter().Put(ctx, data); err != nil {
+				_ = fmt.Errorf("Error at <-batteryBqCh batteryTbl.Put: %s. data: %v ", err.Error(), data)
 			}
-			fmt.Printf("battery %v", battery)
 		case msg := <-chargerBqCh:
-			var charger bigquery.Charger
-			if err := json.Unmarshal(msg.Payload(), &charger); err != nil {
-				// todo: カラムにCreateAt追加するので、Putからmodel.Insertに変える
-				if err := chargerInserter.Put(ctx, charger); err != nil {
-					// todo: error log
-				}
+			data := models.NewCharger(msg.Payload())
+			if err := chargerTbl.Inserter().Put(ctx, data); err != nil {
+				_ = fmt.Errorf("Error at <-chargerBqCh chargerTbl.Put: %s. data: %v ", err.Error(), data)
 			}
 		// CLIで止めた時用
 		case <-signalCh:
 			fmt.Printf("Interrupt detected.\n")
-			c.Disconnect(1000)
+			mqttClient.Disconnect(1000)
 			return
 		}
 	}
@@ -108,10 +100,10 @@ func startSubscribe(ctx context.Context, c mqtt.Client) {
 func onMessage(_ mqtt.Client, msg mqtt.Message) {
 	topicBase := strings.Split(msg.Topic(), "/")[0]
 	switch topicBase {
-	case pubsub.TopicBaseBattery:
+	case models.TopicBaseBattery:
 		batteryFsCh <- msg
 		batteryBqCh <- msg
-	case pubsub.TopicBaseCharger:
+	case models.TopicBaseCharger:
 		chargerFsCh <- msg
 		chargerBqCh <- msg
 	}

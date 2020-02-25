@@ -3,13 +3,15 @@ package external
 import (
 	"cloud.google.com/go/bigquery"
 	"context"
+	"google.golang.org/api/option"
 	"os"
 )
 
 var client *bigquery.Client
 
 func InitBigquery(ctx context.Context) {
-	c, err := bigquery.NewClient(ctx, os.Getenv("GCP_PROJECT_ID"))
+	opt := option.WithCredentialsFile(os.Getenv("BIGQUERY_SECRET_PATH"))
+	c, err := bigquery.NewClient(ctx, os.Getenv("GCP_PROJECT_ID"), opt)
 	if err != nil {
 		panic(err)
 	}
