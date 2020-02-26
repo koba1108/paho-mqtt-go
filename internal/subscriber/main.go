@@ -62,17 +62,20 @@ func initMqtt(ctx context.Context) {
 
 func startSubscribe(ctx context.Context) {
 	signal.Notify(signalCh, os.Interrupt)
+	defer mqttClient.Disconnect(1000)
 	for {
 		select {
 		// 現在地の表示用
 		case msg := <-batteryFsCh:
 			data := models.NewBattery(msg.Payload())
+			fmt.Printf("batteryFsCh: %v \n", data)
 			docRef := fsClient.Collection(models.CollectionNameBattery).Doc(data.TID)
 			if _, err := docRef.Set(ctx, data); err != nil {
 				_ = fmt.Errorf("Error at <-chargerFsCh docRef.Set: %s. data: %v ", err.Error(), data)
 			}
 		case msg := <-chargerFsCh:
 			data := models.NewCharger(msg.Payload())
+			fmt.Printf("chargerFsCh: %v \n", data)
 			docRef := fsClient.Collection(models.CollectionNameCharger).Doc(data.CsID)
 			if _, err := docRef.Set(ctx, data); err != nil {
 				_ = fmt.Errorf("Error at <-chargerFsCh docRef.Set: %s. data: %v ", err.Error(), data)
@@ -80,18 +83,19 @@ func startSubscribe(ctx context.Context) {
 		// ログ蓄積用
 		case msg := <-batteryBqCh:
 			data := models.NewBattery(msg.Payload())
+			fmt.Printf("batteryBqCh: %v \n", data)
 			if err := batteryTbl.Inserter().Put(ctx, data); err != nil {
 				_ = fmt.Errorf("Error at <-batteryBqCh batteryTbl.Put: %s. data: %v ", err.Error(), data)
 			}
 		case msg := <-chargerBqCh:
 			data := models.NewCharger(msg.Payload())
+			fmt.Printf("chargerBqCh: %v \n", data)
 			if err := chargerTbl.Inserter().Put(ctx, data); err != nil {
 				_ = fmt.Errorf("Error at <-chargerBqCh chargerTbl.Put: %s. data: %v ", err.Error(), data)
 			}
 		// CLIで止めた時用
 		case <-signalCh:
 			fmt.Printf("Interrupt detected.\n")
-			mqttClient.Disconnect(1000)
 			return
 		}
 	}
