@@ -7,15 +7,22 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 func NewMqttClient() mqtt.Client {
+	clientId := os.Getenv("CLIENT_ID") + ":" + time.Now().String()
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(fmt.Sprintf("%s:%s", os.Getenv("BROKER_URL"), os.Getenv("BROKER_PORT")))
-	opts.SetClientID(os.Getenv("CLIENT_ID"))
+	opts.SetClientID(clientId)
 	opts.SetTLSConfig(NewTLSConfig())
-	opts.SetOnConnectHandler(func(_ mqtt.Client) {
-		fmt.Printf("onConnect.\n")
+	opts.SetAutoReconnect(true)
+	opts.SetOnConnectHandler(func(client mqtt.Client) {
+		o := client.OptionsReader()
+		fmt.Printf("onConnect. %s\n", o.ClientID())
+	})
+	opts.SetConnectionLostHandler(func(client mqtt.Client, err error) {
+		fmt.Printf("onConnectionLost. %s\n", err.Error())
 	})
 
 	c := mqtt.NewClient(opts)

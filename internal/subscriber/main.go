@@ -62,7 +62,7 @@ func initMqtt(ctx context.Context) {
 
 func startSubscribe(ctx context.Context) {
 	signal.Notify(signalCh, os.Interrupt)
-	defer mqttClient.Disconnect(1000)
+	defer mqttClient.Disconnect(10000)
 	for {
 		select {
 		// 現在地の表示用
@@ -102,6 +102,7 @@ func startSubscribe(ctx context.Context) {
 }
 
 func onMessage(_ mqtt.Client, msg mqtt.Message) {
+	fmt.Printf("onMessage Topic: %s", msg.Topic())
 	topicBase := strings.Split(msg.Topic(), "/")[0]
 	switch topicBase {
 	case models.TopicBaseBattery:
