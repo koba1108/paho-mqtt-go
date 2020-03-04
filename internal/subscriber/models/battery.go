@@ -43,6 +43,18 @@ type Battery struct {
 	CCB2      int       `firestore:"CCB2" bigquery:"CCB2" json:"CCB2"`
 	CHR2      float64   `firestore:"CHR2" bigquery:"CHR2" json:"CHR2"`
 	DHR2      float64   `firestore:"DHR2" bigquery:"DHR2" json:"DHR2"`
+	BV3       float64   `firestore:"BV3" bigquery:"BV3" json:"BV3"`
+	BI3       float64   `firestore:"BI3" bigquery:"BI3" json:"BI3"`
+	BSC3      int       `firestore:"BSC3" bigquery:"BSC3" json:"BSC3"`
+	TB3       int       `firestore:"TB3" bigquery:"TB3" json:"TB3"`
+	CAB3      int       `firestore:"CAB3" bigquery:"CAB3" json:"CAB3"`
+	CKB3      int       `firestore:"CKB3" bigquery:"CKB3" json:"CKB3"`
+	DAB3      int       `firestore:"DAB3" bigquery:"DAB3" json:"DAB3"`
+	DKB3      int       `firestore:"DKB3" bigquery:"DKB3" json:"DKB3"`
+	SHB3      int       `firestore:"SHB3" bigquery:"SHB3" json:"SHB3"`
+	CCB3      int       `firestore:"CCB3" bigquery:"CCB3" json:"CCB3"`
+	CHR3      float64   `firestore:"CHR3" bigquery:"CHR3" json:"CHR3"`
+	DHR3      float64   `firestore:"DHR3" bigquery:"DHR3" json:"DHR3"`
 	TDT       float64   `firestore:"TDT" bigquery:"TDT" json:"TDT"`
 	SPD       float64   `firestore:"SPD" bigquery:"SPD" json:"SPD"`
 	LNG       string    `firestore:"LNG" bigquery:"LNG" json:"LNG"`
@@ -51,6 +63,7 @@ type Battery struct {
 	LAS       string    `firestore:"LAS" bigquery:"LAS" json:"LAS"`
 	AL1       int       `firestore:"AL1" bigquery:"AL1" json:"AL1"`
 	AL2       int       `firestore:"AL2" bigquery:"AL2" json:"AL2"`
+	AL3       int       `firestore:"AL3" bigquery:"AL3" json:"AL3"`
 	AL4       int       `firestore:"AL4" bigquery:"AL4" json:"AL4"`
 	ST1       int       `firestore:"ST1" bigquery:"ST1" json:"ST1"`
 	ST2       int       `firestore:"ST2" bigquery:"ST2" json:"ST2"`
@@ -59,6 +72,9 @@ type Battery struct {
 	SNB2      string    `firestore:"SNB2" bigquery:"SNB2" json:"SNB2"`
 	BM        int       `firestore:"BM" bigquery:"BM" json:"BM"`
 	FV        float64   `firestore:"FV" bigquery:"FV" json:"FV"`
+	B1CV      float64   `firestore:"B1CV" bigquery:"B1CV" json:"B1CV"`
+	B2CV      float64   `firestore:"B2CV" bigquery:"B2CV" json:"B2CV"`
+	B3CV      float64   `firestore:"B3CV" bigquery:"B3CV" json:"B3CV"`
 	CreatedAt time.Time `firestore:"-" bigquery:"CreatedAt" json:"-"`
 	UpdatedAt time.Time `firestore:"UpdatedAt" bigquery:"-" json:"-"`
 }
