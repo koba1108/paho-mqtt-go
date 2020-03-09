@@ -87,14 +87,14 @@ func startSubscribe(ctx context.Context) {
 		// firestoreログ蓄積用
 		case msg := <-batteryFsLogCh:
 			data := models.NewBattery(msg.Payload())
-			colRef := fsClient.Collection(models.CollectionNameBattery).Doc(data.TID).Collection("log")
+			colRef := fsClient.Collection(models.CollectionNameBattery).Doc(data.TID).Collection("battery_log")
 			if _, _, err := colRef.Add(ctx, data); err != nil {
 				_ = fmt.Errorf("Error at <-batteryFsLogCh colRef.Add: %s. data: %v ", err.Error(), data)
 			}
 		case msg := <-chargerFsLogCh:
 			data := models.NewCharger(msg.Payload())
 			fmt.Printf("chargerFsCh: %v \n", data)
-			colRef := fsClient.Collection(models.CollectionNameCharger).Doc(data.CsID).Collection("log")
+			colRef := fsClient.Collection(models.CollectionNameCharger).Doc(data.CsID).Collection("charger_log")
 			if _, _, err := colRef.Add(ctx, data); err != nil {
 				_ = fmt.Errorf("Error at <-chargerFsLogCh colRef.Add: %s. data: %v ", err.Error(), data)
 			}
