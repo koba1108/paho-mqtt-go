@@ -75,6 +75,9 @@ type Battery struct {
 	B1CV      float64   `firestore:"B1CV" bigquery:"B1CV" json:"B1CV"`
 	B2CV      float64   `firestore:"B2CV" bigquery:"B2CV" json:"B2CV"`
 	B3CV      float64   `firestore:"B3CV" bigquery:"B3CV" json:"B3CV"`
+	Year      int       `firestore:"year" bigquery:"-" json:"-"`
+	Month     int       `firestore:"month" bigquery:"-" json:"-"`
+	Day       int       `firestore:"day" bigquery:"-" json:"-"`
 	CreatedAt time.Time `firestore:"-" bigquery:"CreatedAt" json:"-"`
 	UpdatedAt time.Time `firestore:"UpdatedAt" bigquery:"-" json:"-"`
 }
@@ -82,8 +85,12 @@ type Battery struct {
 func NewBattery(payload []byte) *Battery {
 	b := Battery{}
 	_ = json.Unmarshal(payload, &b)
-	b.CreatedAt = time.Now()
-	b.UpdatedAt = time.Now()
+	now := time.Now()
+	b.Year = now.Year()
+	b.Month = int(now.Month())
+	b.Day = now.Day()
+	b.CreatedAt = now
+	b.UpdatedAt = now
 	return &b
 }
 

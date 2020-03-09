@@ -30,6 +30,9 @@ type Charger struct {
 	HltSts    string    `firestore:"hlt_sts" bigquery:"hlt_sts" json:"hlt_sts"`
 	EmgSts    string    `firestore:"emg_sts" bigquery:"emg_sts" json:"emg_sts"`
 	BleID     string    `firestore:"ble_id" bigquery:"ble_id" json:"ble_id"`
+	Year      int       `firestore:"year" bigquery:"-" json:"-"`
+	Month     int       `firestore:"month" bigquery:"-" json:"-"`
+	Day       int       `firestore:"day" bigquery:"-" json:"-"`
 	CreatedAt time.Time `firestore:"-" bigquery:"CreatedAt" json:"-"`
 	UpdatedAt time.Time `firestore:"UpdatedAt" bigquery:"-" json:"-"`
 }
@@ -37,7 +40,11 @@ type Charger struct {
 func NewCharger(payload []byte) *Charger {
 	c := Charger{}
 	_ = json.Unmarshal(payload, &c)
-	c.CreatedAt = time.Now()
-	c.UpdatedAt = time.Now()
+	now := time.Now()
+	c.Year = now.Year()
+	c.Month = int(now.Month())
+	c.Day = now.Day()
+	c.CreatedAt = now
+	c.UpdatedAt = now
 	return &c
 }

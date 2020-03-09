@@ -23,11 +23,13 @@ var (
 	batteryTbl *bigquery.Table
 	chargerTbl *bigquery.Table
 	// チャンネル
-	signalCh    = make(chan os.Signal, 1)
-	batteryFsCh = make(chan mqtt.Message)
-	batteryBqCh = make(chan mqtt.Message)
-	chargerFsCh = make(chan mqtt.Message)
-	chargerBqCh = make(chan mqtt.Message)
+	signalCh       = make(chan os.Signal, 1)
+	batteryFsCh    = make(chan mqtt.Message)
+	batteryFsLogCh = make(chan mqtt.Message)
+	batteryBqCh    = make(chan mqtt.Message)
+	chargerFsCh    = make(chan mqtt.Message)
+	chargerFsLogCh = make(chan mqtt.Message)
+	chargerBqCh    = make(chan mqtt.Message)
 )
 
 func Run() {
@@ -80,7 +82,25 @@ func startSubscribe(ctx context.Context) {
 			if _, err := docRef.Set(ctx, data); err != nil {
 				_ = fmt.Errorf("Error at <-chargerFsCh docRef.Set: %s. data: %v ", err.Error(), data)
 			}
-		// ログ蓄積用
+		////////////////////////////////////////////
+
+		// firestoreログ蓄積用
+		case msg := <-batteryFsLogCh:
+			data := models.NewBattery(msg.Payload())
+			colRef := fsClient.Collection(models.CollectionNameBattery).Doc(data.TID).Collection("log")
+			if _, _, err := colRef.Add(ctx, data); err != nil {
+				_ = fmt.Errorf("Error at <-batteryFsLogCh colRef.Add: %s. data: %v ", err.Error(), data)
+			}
+		case msg := <-chargerFsLogCh:
+			data := models.NewCharger(msg.Payload())
+			fmt.Printf("chargerFsCh: %v \n", data)
+			colRef := fsClient.Collection(models.CollectionNameCharger).Doc(data.CsID).Collection("log")
+			if _, _, err := colRef.Add(ctx, data); err != nil {
+				_ = fmt.Errorf("Error at <-chargerFsLogCh colRef.Add: %s. data: %v ", err.Error(), data)
+			}
+		////////////////////////////////////////////
+
+		// bigqueryログ蓄積用
 		case msg := <-batteryBqCh:
 			data := models.NewBattery(msg.Payload())
 			fmt.Printf("batteryBqCh: %v \n", data)
@@ -93,6 +113,8 @@ func startSubscribe(ctx context.Context) {
 			if err := chargerTbl.Inserter().Put(ctx, data); err != nil {
 				_ = fmt.Errorf("Error at <-chargerBqCh chargerTbl.Put: %s. data: %v ", err.Error(), data)
 			}
+		////////////////////////////////////////////
+
 		// CLIで止めた時用
 		case <-signalCh:
 			fmt.Printf("Interrupt detected.\n")
@@ -107,9 +129,11 @@ func onMessage(_ mqtt.Client, msg mqtt.Message) {
 	switch topicBase {
 	case models.TopicBaseBattery:
 		batteryFsCh <- msg
+		batteryFsLogCh <- msg
 		batteryBqCh <- msg
 	case models.TopicBaseCharger:
 		chargerFsCh <- msg
+		chargerFsLogCh <- msg
 		chargerBqCh <- msg
 	}
 }
